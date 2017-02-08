@@ -1,5 +1,7 @@
 # Advanced Lane Finding
 
+![alt text](https://j.gifs.com/KOkprJ.gif)
+
 In the first approach to this problem, some techniques were applied to identify the lane lines of the road of a given video.
 At that moment, the model was based on the Canny Edge algorithm.
 
@@ -301,7 +303,7 @@ These values were used to compute the lines values along 5 frames to get a smoot
 
 ![alt text][image7]
 
-Here's a [link to my video result][video1]
+Here's a [link to THE YOUTUBE VIDEO][https://www.youtube.com/watch?v=OFUBLfM4xyE]
 
 ---
 
