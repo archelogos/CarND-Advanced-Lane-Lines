@@ -8,7 +8,7 @@ At that moment, the model was based on the Canny Edge algorithm.
 In this project it is necessary to go one step further applying some image transformation as well as other techniques to the video frames to
 detect the lane lines in a better way.
 
-The goal of this project is to develop a pipeline that processes a video stream from a camera mounted on the front of a car, and output an modified video identifying:
+The goal of this project is to develop a pipeline that processes a video stream from a camera mounted on the front of a car, and returns an modified video identifying:
 
 * The positions of the lane lines
 * The location of the vehicle relative to the center of the lane
@@ -18,11 +18,11 @@ To achieve this, some steps have been defined:
 
 * Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
 * Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
+* Use color transforms, gradients, etc., to create a binary image.
 * Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
+* Detect lane pixels and fit a polynomial to each lane.
 * Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
+* Warp the detected lane boundaries back into the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 [//]: # (Image References)
@@ -45,19 +45,19 @@ was modified to compute a video instead of single images.
 ## Camera Calibration
 
 First, it was necessary to calculate the calibration matrix of the camera and apply the distortion coefficients to the test
-images. Making use of the method ```cv2.findChessBoardCorners()``` it was possible to detect the 9x6 corners of the sample images.
+images. Making use of the ```cv2.findChessBoardCorners()``` method it was possible to detect the 9x6 corners of the sample images.
 
 After that, the images were modified, adding the detected corners to them.
 
 ![alt text][image0]
 
-From 20 test images, only in 17 of them, corners were detected. The coefficients were obtained thanks to the method ```cv2.calibrateCamera()``` that provides the Matrix and Distortion coefficients given a set of chessboard images.
+From 20 test images, only in 17 of them, corners were detected. The coefficients were obtained thanks to the ```cv2.calibrateCamera()``` method that provides the Matrix and Distortion coefficients given a set of chessboard images.
 
 The computed coefficients were saved in a pickle file in order to not repeat this step all the time in the pipeline.
 
 This part of the code can be found here: [Camera Calibration](./lane_lines_detection.ipynb#Corners-detection)
 
-In the following image can be seen the differences between the original and the undistorted image.
+In the following image, the differences between the original and the undistorted image can be seen.
 
 ![alt text][image1]
 
@@ -67,19 +67,19 @@ In the following image can be seen the differences between the original and the 
 
 With the coefficients properly calculated, the next logical step was to start the pipeline process with the distortion correction.
 
-The pipeline can be divided in 2 phases. The first one related to the image processing (distortion correction, binary-image transformation and perspective warping), and the second one oriented to the lines finding.
+The pipeline can be divided in 2 phases. The first one related to image processing (distortion correction, binary-image transformation and perspective warping), and the second one oriented to lines finding.
 
-In the sample images is more complicated to see the differences between both images, but the effect is more remarkably in the corners.
+In the sample images is more complicated to see the differences between both images. Nevertheless, the effect is more remarkable in the corners.
 
 ![alt text][image2]
 
-In this case it was necessary to use the method ```cv2.undistort()```: [Undistort](./lane_lines_detection.ipynb#Undistort)
+In this case it was necessary to use the ```cv2.undistort()``` method: [Undistort](./lane_lines_detection.ipynb#Undistort)
 
-In the majority of these steps, all transformations and processing steps were done with lambda functions in order to do the code simpler.
+In the majority of these steps, all transformations and processing steps were done with lambda functions in order to simplify the code.
 
 ### 2. Color Transform and gradients
 
-Once the images have been correctly distorted, the next step was to transform them to binary images. To do that, some color thresholds were set on order to detect the lane lines more easily. It was also set a gradient transformation in the coordinate 'x' to detect vertical lines properly.
+Once the images have been correctly distorted, the next step was to transform them to binary images. To do that, some color thresholds were set in order to detect the lane lines more easily. It was also set a gradient transformation in the coordinate 'x' to properly detect vertical lines.
 
 The final binary images were made computing the following transformations:
 
@@ -109,10 +109,10 @@ def threshold_image(image):
 ### 3. Warp the images
 
 With the binary images properly generated, the next step was to apply a perspective transformation to the images (called 'bird-eye-view')
-to extract the relevant information of the image. Because the goal we want to achieve is to detect the lane lines, it was necessary to specify
+to extract the relevant information from the image. Because the goal we want to achieve is to detect the lane lines, it was necessary to specify
 the area where the transformation is going to be applied.
 
-The area selected finally was:
+The area finally selected was:
 
 ```python
 src = np.float32([[490, 482],[810, 482], [1250, 720],[40, 720]])
@@ -127,31 +127,30 @@ This resulted in the following source and destination points:
 | 1250, 720     | 1250, 720      |
 | 40, 460      | 40, 720        |
 
-Thanks to the method ```cv2.getPerspectiveTransform()``` it was possible to determine the Tranformation Matrix, and then making use of the function ```cv2.warpPerspective()``` it was possible to get the relevant points from the image that define the lane lines.
+Thanks to the ```cv2.getPerspectiveTransform()``` method it was possible to determine the tranformation Matrix, and then making use of the function ```cv2.warpPerspective()``` it was possible to get the relevant points from the image that define the lane lines.
 
 [Apply a perspective transformation](./lane_lines_detection.ipynb#3.-Apply-a-perspective-transform-("birds-eye-view"))
 
 ![alt text][image4]
 
-At the beginning of the process the picture was a standard one from a camara placed on the front of a car. At this point, we had some clear points that
+At the beginning of the process the picture was a standard one from a camera placed on the front of a car. At this point, we had some clear points that
 define the lane lines on the road in a particular and useful format for computing the entire line.
 
-Mentioned that, at this point it was possible to determine the lane lines applying some mathmematical functions.  
+Mentioned that, at this point it was possible to determine the lane lines applying some mathematical functions.  
 
 ### 4. Fitting the polynomials
 
 [Fitting the polynomials](./lane_lines_detection.ipynb#Lane-detection-+-radius-measurement-+-center-finding)
 
-With the binary images warped, the following step was to fit a polynomial to each lane line, which was done by:
+With the binary images warped, the following step was to fit a polynomial to each lane line, by:
 
 - Finding the first lane line on the first frame, computing a histogram and identifying the peaks in it.
-- Detecting all non zero pixels around the histogram peaks using the numpy function ```numpy.nonzero()```
+- Detecting all non-zero pixels around the histogram peaks using the numpy function ```numpy.nonzero()```
 - Fitting a second order polynomial to each lane using the numpy function ```numpy.polyfit()```
 
-The code can be a bit confused in the first sight, but the key point of the understanding is to keep in mind that the image, ideally,
-only has values non zero where the lane lines are placed.
+The code can be a bit confusing at the first sight, but the key point to understand it is to keep in mind that ideally the image has only non-zero values where the lane lines are placed.
 
-For that reason the calculation can be described as: get all nonzeros points from the image, apply the second order polynomial to these points.
+For that reason the calculation can be described as: get all non-zero points from the image and then, apply the second order polynomial to those points.
 
 ![alt text][image5]
 
@@ -161,7 +160,7 @@ In this step we were looking for the vehicle position and the radius of curvatur
 
 For the position of the vehicle, it was assumed the camera was mounted at the center of the car and the deviation of the midpoint of the lane from the center of the image is the offset we wanted to calculate.
 
-First it was necessary to compute the best fitted x on each line (mean of all x values), and then it was calculated by taking the absolute value of the vehicle position minus the point in the middle along the horizontal axis.
+First, it was necessary to compute the best fitted 'x' values on each line (mean of all x values), and then it was calculated by taking the absolute value of the vehicle position minus the point in the middle along the horizontal axis.
 
 ```python
 center = abs((1280/2) - ((left.bestx+right.bestx)/2))
@@ -194,7 +193,7 @@ curverad = int((left.radius_of_curvature + right.radius_of_curvature)/2)
 ### 6. Pipeline Output
 
 At the end of the pipeline, the result was an eye-bird-view of each image, previously converted to a binary one. Then, the lane lines where
-detected and interpolated to define a whole line that can be used in the resulting pipeline to draw the whole area between them.
+detected and interpolated to define an entire line that can be used in the resulting pipeline to draw the whole area between them.
 
 At the same time, the radius of curvature and the relative position of the car to the center were properly calculated, giving
 some extra information.
@@ -210,12 +209,11 @@ some extra information.
 In the final part of the project, the same pipeline was applied to process videos frame-by-frame.
 Taking a video we wanted to test our pipeline to simulate a real-time processing situation.
 
-At the same time that we were driving the car, the camera placed in the front of it, is taking pictures of the road. Then, frame-by-frame the pipeline processes the images and determine not only the area where the car should be driving, but also the position offset from the center, and the radius of curvature as well.
+At the same time that we were driving the car, the camera placed in the front of it, is taking pictures of the road. Then, frame-by-frame the pipeline processes the images and determines not only the area where the car should be driving, but also the position offset from the center, and the radius of curvature as well.
 
-The pipeline process was defined in a single method ```pipeline()``` which receives a standard image from the video and after processes it, it returns
-a new and modified image with an area drawn on it.
+The pipeline process was defined in a single ```pipeline()``` method which receives a standard image from the video and after having processed it, it returns a new and modified image with an area drawn on it.
 
-Following, the steps followed in the process
+Morover, the steps followed in the process were:
 
 - Undistort the input
 - Convert the image to a binary
@@ -229,7 +227,7 @@ Following, the steps followed in the process
 
 To make the process easier, it was defined a ```Line``` class with some properties and a method ```update()``` .
 
-Two instances of this class were created (left and right) and the method update was called on each frame iteration.
+Two instances of this class were created (left and right) and the update method was called on each frame iteration.
 
 ```python
 # Define a class to receive the characteristics of each line detection
@@ -296,8 +294,7 @@ At the same time, the pipeline fits the polynomial based on the n (5) previous f
 
 ![alt text][image6]
 
-If the pipeline loses the lane lines in a frame it automatically actives the blind mode and scan the entire binary image for nonzero pixels to represent the lanes. On each video frame both lines instances,
-are updated. Not only the points of both lane lines are updated but also the mean of them in order to get the best fitted values.
+If the pipeline loses the lane lines in a frame it automatically activates the blind mode and scan the entire binary image for non-zero pixels to represent the lanes. On each video frame both lines instances, are updated. Not only are the points of both lane lines updated but also the mean of them in order to get the best fitted values.
 
 These values were used to compute the lines values along 5 frames to get a smoother result.
 
@@ -312,14 +309,13 @@ Here's a [link to THE YOUTUBE VIDEO](https://www.youtube.com/watch?v=OFUBLfM4xyE
 After testing the standalone pipeline as well as the video pipeline, it could be said that the model works fine in standard conditions. If the road conditions were much worse and the road itself
 had a different lane lines format the model performance would get worse easily.
 
-At the same time it also important to point out that the light conditions of the video of this project are specially
-good. In a normal scenario with worse conditions of weather or light, the model couldn't detect the lines in the same way as it does in this project.
+At the same time it is also important to point out that the light conditions of the video of this project are especially
+good. In a normal scenario with worse conditions of weather or light, the model won't be able to detect the lines in the same way as it does in this project.
 
 It's pretty obvious that the majority of the weaknesses of the pipeline are related to the way of how it generates the binary image. It has been defined a kind of advanced pipeline that takes
 2 color channel and the gradient in the x orientation of each image. However, it couldn't be said that this image processing was a production-ready pipeline to drive a real-world car.
 
-The selected area of the source image should be automatically detected based on other parameters and not manually. At the same time, the image processing should be more generic and better detecting
-lane lines even with poor-light conditions or bad weather.
+The selected area of the source image should be automatically detected based on other parameters and not manually. In addition, the image processing should be more generic to better detect lane lines even with poor-light conditions or bad weather.
 
 Mentioned that, it's quite impressive how applying not very complicated algorithms we were able to create a birds-eye-view binary image rapidly and define a certain area where the car should be
 driven to. As well as just applying some calculations we were also able to determine the position and the radius of curvature of each step.
